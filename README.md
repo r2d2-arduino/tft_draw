@@ -42,7 +42,7 @@ A set of graphic libraries for TFT and LCD displays in micropython
 * **load_bmp( filename, x = 0, y = 0 ):** - Load and convert 16-color BMP image on buffer. Used in some libraries.
 
 ## Text functions:
-* **set_font( font ):** Set font for text. Converted font is used. See *utils/font_to_py.py*.
+* **set_font( font ):** Set font for text. Converted font is used. See *tools/ font_to_py.py*.
 * **set_text_wrap( on = True ):** - Set text wrapping. Used in some libraries.
 * **draw_text( text, x, y, color ):** Draw text on display.
 * **draw_bitmap( bitmap, x, y, color ):** Draw one bitmap (char) on display.
