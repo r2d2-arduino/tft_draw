@@ -7,8 +7,11 @@ A set of graphic libraries for TFT and LCD displays in micropython
 * **draw_fb_g8.py** - A framebuffer-based, extended SPI library for 8-bit color.
 * **draw_fb_с16.py** - A framebuffer-based, extended SPI library for 16-bit color.
 * **draw_fb_с18.py** - A framebuffer-based, extended SPI library for 18/24-bit color.
-* **draw_spi_c16.py** - A direct draw, extended SPI library for 16-bit color.
-* **draw_spi_c18.py** - A direct draw, extended SPI library for 18/24-bit color.
+* **draw_spi_c16.py** - A direct draw, SPI library for 16-bit color.
+* **draw_spi_c18.py** - A direct draw, SPI library for 18/24-bit color.
+* **draw_8b_c16.py** - A direct draw, 8-bit parallel library for 16-bit color.
+* **draw_8b_c18.py** - A direct draw, 8-bit parallel library for 18-bit color.
+* **draw_8b_c24.py** - A direct draw, 8-bit parallel library for 24-bit color.
 
 ## Tools
 * **tools/ font_to_py.py** - Used to convert ttf font to py script. First of all, you need to install: `pip install freetype-py`. Then run a command similar to the example:
