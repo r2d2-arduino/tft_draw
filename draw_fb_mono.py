@@ -10,8 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from framebuf import FrameBuffer, MONO_VLSB, MONO_HMSB, MONO_HLSB
+from micropython import const
 
 class DRAW_FB_MONO (FrameBuffer):
+    
+    BITS_PER_PIXEL = const( 1 )
     
     def __init__( self, width, height, rotation = 0, fb_type = 0 ):
         

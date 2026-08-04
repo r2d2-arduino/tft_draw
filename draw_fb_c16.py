@@ -10,8 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from framebuf import FrameBuffer, RGB565
+from micropython import const
 
 class DRAW_FB_C16 (FrameBuffer):
+    
+    BITS_PER_PIXEL = const( 16 )
     
     def __init__( self, width, height ):
         

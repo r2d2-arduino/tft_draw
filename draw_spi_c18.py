@@ -10,9 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from struct import pack
+from micropython import const
 
 class DRAW_SPI_C18:
     
+    BITS_PER_PIXEL = const( 18 )
     BUFFER_INTERNAL = const(4097)
     BUFFER_ROWS = const(10)
     BITCLIP = const(0xFC) # 0xFC - for 18-bit, 0xFF - for 24-bit

@@ -10,8 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from framebuf import FrameBuffer, GS8, MONO_HLSB
+from micropython import const
 
 class DRAW_FB_G8 (FrameBuffer):
+    
+    BITS_PER_PIXEL = const( 8 )
     
     def __init__( self, width, height, rotation = 0 ):
         

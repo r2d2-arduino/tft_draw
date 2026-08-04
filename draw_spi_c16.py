@@ -10,9 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from struct import pack
+from micropython import const
 
 class DRAW_SPI_C16:
     
+    BITS_PER_PIXEL = const( 16 )
     BUFFER_INTERNAL = const(4097)
     BUFFER_ROWS = const(9)
     

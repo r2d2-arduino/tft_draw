@@ -11,7 +11,11 @@ MIT License
 
 Author: Arthur Derkach 
 """
+from micropython import const
+
 class DRAW_8B_C24 ( ):
+    
+    BITS_PER_PIXEL = const( 24 )
     
     def __init__( self, width, height ):
         self.width  = width
@@ -19,8 +23,6 @@ class DRAW_8B_C24 ( ):
         
         self.buffer_multiply = 1
         self.font = None
-        
-        self.bits_per_pixel = 24
         
     def swap_dimensions( self ):
         """ Swaps width and height for 90/270 degree rotation. """
@@ -510,13 +512,13 @@ class DRAW_8B_C24 ( ):
 
                 self.update_byte2gpio()
                 self.set_window(x, y, x + frameWidth - 1, y + frameHeight - 1)
-                self._send_bmp_to_display( f, frameHeight, frameWidth, offset, rowsize, self.buffer_multiply )
+                self._send_bmp_to_display( f, frameHeight, frameWidth, offset, rowsize )
 
                 self.cs.value(1)
         f.close()
 
     @micropython.viper
-    def _send_bmp_to_display(self, f, frameHeight: int, frameWidth: int, offset: int, rowsize: int, bufmulty: int):
+    def _send_bmp_to_display( self, f, frameHeight: int, frameWidth: int, offset: int, rowsize: int ):
         """ Send bmp-file to display by blocks
         Args
         f (object File) : Image file
@@ -532,45 +534,33 @@ class DRAW_8B_C24 ( ):
         GPIO_OUT_S = ptr32(self.GPIO_OUT_SET)
         byte2gpio  = ptr32(self.BYTE2GPIO)
 
-        current_row = 0
-
-        while current_row < frameHeight:
-            # Calculating row size of block
-            rows_to_read = bufmulty
-            if current_row + rows_to_read > frameHeight:
-                rows_to_read = frameHeight - current_row
-
+        # Calculating row size of block
+        image_data = bytearray(rowsize)
+        image_buffer = ptr8(image_data)
+            
+        for row in range( frameHeight ):
             # Start position of new row in image-file
-            pos = offset + current_row * rowsize  
+            pos = offset + row * rowsize  
             if int(f.tell()) != pos:
                 f.seek(pos)
 
             # Reading row block
-            bgr_block = f.read(rows_to_read * rowsize)
-            image_buffer = ptr8(bgr_block)
+            f.readinto(image_data)
+            
+            # Sending new bit-masks directly to registers
+            col = 0
+            while col < frameWidth:
+                #red
+                GPIO_OUT[0] = byte2gpio[ image_buffer[ col * 3 + 2 ] ] 
+                GPIO_OUT_S[0] = wr_bit
+                #green
+                GPIO_OUT[0] = byte2gpio[ image_buffer[ col * 3 + 1 ] ] 
+                GPIO_OUT_S[0] = wr_bit
+                #blue
+                GPIO_OUT[0] = byte2gpio[ image_buffer[ col * 3 ] ] 
+                GPIO_OUT_S[0] = wr_bit
 
-            for r in range(rows_to_read):
-                row_offset = r * rowsize
-                col = 0
-
-                while col < frameWidth:
-                    idx = row_offset + col * 3
-
-                    blue  = image_buffer[ idx ]
-                    green = image_buffer[ idx + 1 ]
-                    red   = image_buffer[ idx + 2 ]
-
-                    GPIO_OUT[0] = byte2gpio[ red ]
-                    GPIO_OUT_S[0] = wr_bit
-                    GPIO_OUT[0] = byte2gpio[ green ]
-                    GPIO_OUT_S[0] = wr_bit
-                    GPIO_OUT[0] = byte2gpio[ blue ]
-                    GPIO_OUT_S[0] = wr_bit
-
-                    col += 1
-
-            # Shifting of current row
-            current_row += rows_to_read
+                col += 1
 
     """
     *** Text area ***

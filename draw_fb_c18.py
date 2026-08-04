@@ -9,9 +9,11 @@ MIT License
 
 Author: Arthur Derkach 
 """
+from micropython import const
 
 class DRAW_FB_C18:
     
+    BITS_PER_PIXEL = const( 18 )    
     BITCLIP = const(0xFC) # 0xFC - for 18-bit, 0xFF - for 24-bit
     
     def __init__( self, width, height ):

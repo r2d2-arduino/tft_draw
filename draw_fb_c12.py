@@ -1,5 +1,5 @@
 """
-DRAW_FB_C12 v 0.0.1
+DRAW_FB_C12 v 0.0.1 (Not finished!)
 Draw library for color displays
 
 Color: 12-bit
@@ -9,8 +9,11 @@ MIT License
 
 Author: Arthur Derkach 
 """
+from micropython import const
 
 class DRAW_FB_C12:
+    
+    BITS_PER_PIXEL = const( 12 )
     
     def __init__( self, buffer, width, height ):
 

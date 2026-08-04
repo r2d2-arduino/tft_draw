@@ -11,8 +11,11 @@ MIT License
 
 Author: Arthur Derkach 
 """
+from micropython import const
 
 class DRAW_8B_C16 ( ):
+    
+    BITS_PER_PIXEL = const( 16 )
     
     def __init__( self, width, height ):
         self.width  = width
@@ -20,8 +23,6 @@ class DRAW_8B_C16 ( ):
         
         self.buffer_multiply = 1
         self.font = None
-        
-        self.bits_per_pixel = 16
        
     def swap_dimensions( self ):
         """ Swaps width and height for 90/270 degree rotation. """
@@ -470,8 +471,6 @@ class DRAW_8B_C16 ( ):
         with open( filename, 'rb' ) as f:
             
             wr_bit = int(self.wr_bit)
-            bufmulty = int(self.buffer_multiply)
-        
             self.update_byte2gpio()
 
             #Getting pointers to registers
@@ -481,30 +480,44 @@ class DRAW_8B_C16 ( ):
 
             self.set_window(x, y, x + width - 1, y + height - 1) # Set start position
 
-            byte_width = width * 2
+            #byte_width = width * 2
             current_row = 0
-
-            while current_row < height:
-                # Calculating rows in block
-                rows_to_read = bufmulty
-                if current_row + rows_to_read > height:
-                    rows_to_read = height - current_row
-
-                # Calculating bites in block
-                bytes_to_read = rows_to_read * byte_width
-
+            
+            # Calculating bites in block
+            rows_to_read = int(self.buffer_multiply)
+            pixels_to_read = rows_to_read * width
+            image_data = bytearray(rows_to_read * width * 2)
+            image_buffer = ptr8(image_data) # get pointer to image row
+            
+            rows_rest = height % rows_to_read
+            
+            while current_row < height - rows_rest:
                 # Reading image block
-                image_data = f.read(bytes_to_read)
-                image_buffer = ptr8(image_data) # get pointer to image row
+                f.readinto(image_data)
 
-                for pos in range(bytes_to_read):
-                    GPIO_OUT[0] = byte2gpio[ image_buffer[ pos ] ]
+                for pos in range(pixels_to_read):
+                    GPIO_OUT[0] = byte2gpio[ image_buffer[ pos * 2 ] ]
                     GPIO_OUT_S[0] = wr_bit
-
+                    
+                    GPIO_OUT[0] = byte2gpio[ image_buffer[ pos * 2 + 1 ] ]
+                    GPIO_OUT_S[0] = wr_bit
+                
                 current_row += rows_to_read
-
-            #self.cs.value(1)  # Chip disabled
-            self.cs.value(1)
+            
+            #calculating rest
+            if rows_rest:
+                rest_data = bytearray(rows_rest * width * 2)
+                rest_buffer = ptr8(rest_data)
+                f.readinto(rest_data)
+                
+                for rpos in range( rows_rest * width ):
+                    GPIO_OUT[0] = byte2gpio[ rest_buffer[ rpos * 2 ] ]
+                    GPIO_OUT_S[0] = wr_bit
+                    
+                    GPIO_OUT[0] = byte2gpio[ rest_buffer[ rpos * 2 + 1 ] ]
+                    GPIO_OUT_S[0] = wr_bit
+        
+            self.cs.value(1) # Chip disabled
 
     def draw_bmp( self, filename, x = 0, y = 0 ):
         """ Draw BMP image on display
@@ -543,13 +556,13 @@ class DRAW_8B_C16 ( ):
 
                 self.update_byte2gpio()
                 self.set_window(x, y, x + frameWidth - 1, y + frameHeight - 1)
-                self._send_bmp_to_display( f, frameHeight, frameWidth, offset, rowsize, self.buffer_multiply )
+                self._send_bmp_to_display( f, frameHeight, frameWidth, offset, rowsize )
 
                 self.cs.value(1)
         f.close()
 
     @micropython.viper
-    def _send_bmp_to_display(self, f, frameHeight: int, frameWidth: int, offset: int, rowsize: int, bufmulty: int):
+    def _send_bmp_to_display( self, f, frameHeight: int, frameWidth: int, offset: int, rowsize: int ):
         """ Send bmp-file to display by blocks
         Args
         f (object File) : Image file
@@ -565,46 +578,33 @@ class DRAW_8B_C16 ( ):
         GPIO_OUT_S = ptr32(self.GPIO_OUT_SET)
         byte2gpio  = ptr32(self.BYTE2GPIO)
 
-        current_row = 0
-
-        while current_row < frameHeight:
-            # Calculating row size of block
-            rows_to_read = bufmulty
-            if current_row + rows_to_read > frameHeight:
-                rows_to_read = frameHeight - current_row
-
+        # Calculating row size of block
+        image_data = bytearray(rowsize)
+        image_buffer = ptr8(image_data)
+            
+        for row in range( frameHeight ):
             # Start position of new row in image-file
-            pos = offset + current_row * rowsize  
+            pos = offset + row * rowsize  
             if int(f.tell()) != pos:
                 f.seek(pos)
 
             # Reading row block
-            bgr_block = f.read(rows_to_read * rowsize)
-            image_buffer = ptr8(bgr_block)
+            f.readinto(image_data)
+            
+            col = 0
+            while col < frameWidth:
+                # Pixel index in the image
+                blue  = image_buffer[ col * 3 ]
+                green = image_buffer[ col * 3 + 1 ]
+                red   = image_buffer[ col * 3 + 2 ]
 
-            for r in range(rows_to_read):
-                # Setting buffer offset
-                row_offset = r * rowsize
-                col = 0
+                # Sending new bit-masks directly to registers
+                GPIO_OUT[0] = byte2gpio[ ( red & 0xF8 ) | ( green & 0xFC ) >> 5 ]
+                GPIO_OUT_S[0] = wr_bit
+                GPIO_OUT[0] = byte2gpio[ ( green & 0x1C ) << 3 | blue >> 3 ]
+                GPIO_OUT_S[0] = wr_bit
 
-                while col < frameWidth:
-                    # Pixel index in the image
-                    idx = row_offset + col * 3
-
-                    blue  = image_buffer[ idx ]
-                    green = image_buffer[ idx + 1 ]
-                    red   = image_buffer[ idx + 2 ]
-
-                    # Sending new bit-masks directly to registers
-                    GPIO_OUT[0] = byte2gpio[ (red & 0xF8 ) | ( green & 0xFC ) >> 5 ]
-                    GPIO_OUT_S[0] = wr_bit
-                    GPIO_OUT[0] = byte2gpio[ (green & 0x1C ) << 3 | blue >> 3 ]
-                    GPIO_OUT_S[0] = wr_bit
-
-                    col += 1
-
-            # Shifting of current row
-            current_row += rows_to_read
+                col += 1
 
     """
     *** Text area ***

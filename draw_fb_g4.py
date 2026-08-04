@@ -10,8 +10,11 @@ MIT License
 Author: Arthur Derkach 
 """
 from framebuf import FrameBuffer, GS4_HMSB, MONO_HLSB, MONO_VLSB, MONO_HMSB
+from micropython import const
 
 class DRAW_FB_G4 (FrameBuffer):
+    
+    BITS_PER_PIXEL = const( 4 )
     
     def __init__( self, width, height, rotation = 0 ):
         
